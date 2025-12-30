@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landscape Slider</title>
+    <style>
+        /* Basic reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: #111;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Title area */
+        .title-box {
+            position: absolute;
+            top: 40px;
+            text-align: center;
+            width: 80%;
+            z-index: 10;
+        }
+
+        .title-box h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-box p {
+            color: #ccc;
+        }
+
+        /* The 3D Container */
+        .slider-box {
+            width: 500px; 
+            height: 320px;
+            position: relative;
+            perspective: 1200px; 
+            margin: 60px 0;
+        }
+
+        .spinner {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 1s;
+        }
+
+        /* Individual cards */
+        .card {
+            position: absolute;
+            width: 480px;
+            height: 280px;
+            left: 10px;
+            top: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2); 
+            background: #222;
+            overflow: hidden;
+            /* This reflects the image below it */
+            -webkit-box-reflect: below 10px linear-gradient(transparent, transparent, rgba(0,0,0,0.4));
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Text overlay */
+        .info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            background: rgba(0,0,0,0.6);
+        }
+
+        .info h3 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+
+        /* Buttons */
+        .nav-btns {
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid #00d2ff;
+            color: #00d2ff;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #00d2ff;
+            color: black;
+        }
+
+        /* Timer bar at bottom */
+        .timer-bg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #333;
+        }
+
+        .timer-fill {
+            height: 100%;
+            width: 0%;
+            background: #00d2ff;
+        }
+
+        /* Mobile fixes */
+        @media (max-width: 768px) {
+            .slider-box { width: 320px; height: 220px; }
+            .card { width: 300px; height: 180px; }
+            .title-box h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title-box">
+        <h1>Image Slider</h1>
+        <p>Explore our featured collection in a 3D panoramic view. Navigate manually or watch the automatic showcase.</p>
+    </div>
+
+    <div class="slider-box">
+        <div class="spinner" id="spinner">
+            </div>
+    </div>
+
+    <div class="nav-btns">
+        <button class="btn" onclick="prevSlide()">❮ Previous</button>
+        <button class="btn" onclick="nextSlide()">Next ❯</button>
+    </div>
+
+    <div class="timer-bg">
+        <div class="timer-fill" id="timerFill"></div>
+    </div>
+
+    <script>
+        // Data for the slider
+        var photoData = [
+            { src: 'https://picsum.photos/id/10/900/600', title: 'Misty Mountains' },
+            { src: 'https://picsum.photos/id/11/900/600', title: 'Green Forest' },
+            { src: 'https://picsum.photos/id/12/900/600', title: 'Sandy Beach' },
+            { src: 'https://picsum.photos/id/13/900/600', title: 'Summer Coast' },
+            { src: 'https://picsum.photos/id/14/900/600', title: 'Blue Ocean' },
+            { src: 'https://picsum.photos/id/15/900/600', title: 'Waterfall' },
+            { src: 'https://picsum.photos/id/16/900/600', title: 'Sunset Rocks' },
+            { src: 'https://picsum.photos/id/17/900/600', title: 'Meadow Path' },
+            { src: 'https://picsum.photos/id/18/900/600', title: 'Grass Fields' }
+        ];
+
+        // Global variables
+        var spinner = document.getElementById('spinner');
+        var timerFill = document.getElementById('timerFill');
+        
+        var currentIndex = 0;
+        var total = photoData.length;
+        var depth = 0;
+        var angle = 0;
+        var autoTimer;
+
+        // Run the setup
+        setup();
+
+        function setup() {
+            // Figure out the width for the math
+            var width = 480; // Default width
+            if (window.innerWidth <= 768) {
+                width = 300; // Mobile width
+            }
+
+            // Calculate angles
+            angle = 360 / total;
+            
+            // Formula to push cards out in a circle
+            // dist = (width / 2) / tan(angle / 2)
+            var radian = (angle / 2) * Math.PI / 180;
+            depth = Math.round( (width + 20) / 2 / Math.tan(radian) );
+
+            // Clear old stuff
+            spinner.innerHTML = '';
+
+            // Loop to create cards
+            for(var i=0; i<total; i++) {
+                var div = document.createElement('div');
+                div.className = 'card';
+                
+                // Add image
+                var img = document.createElement('img');
+                img.src = photoData[i].src;
+                
+                // Add text
+                var info = document.createElement('div');
+                info.className = 'info';
+                info.innerHTML = '<h3>' + photoData[i].title + '</h3>';
+
+                div.appendChild(img);
+                div.appendChild(info);
+
+                // Set 3D rotation
+                var myAngle = angle * i;
+                div.style.transform = 'rotateY(' + myAngle + 'deg) translateZ(' + depth + 'px)';
+
+                spinner.appendChild(div);
+            }
+
+            updateSpinner();
+            runTimer();
+        }
+
+        function updateSpinner() {
+            // Rotate the whole container
+            var currentAngle = angle * currentIndex * -1;
+            spinner.style.transform = 'translateZ(-' + depth + 'px) rotateY(' + currentAngle + 'deg)';
+            
+            // Restart timer animation
+            resetTimerAnimation();
+        }
+
+        function nextSlide() {
+            currentIndex++;
+            updateSpinner();
+            restartAutoPlay();
+        }
+
+        function prevSlide() {
+            currentIndex--;
+            updateSpinner();
+            restartAutoPlay();
+        }
+
+        function runTimer() {
+            // CSS transition handles the animation
+            timerFill.style.transition = 'width 3s linear';
+            
+            // Slight delay to make sure style applies
+            setTimeout(function(){
+                timerFill.style.width = '100%';
+            }, 10);
+
+            // Set interval to move slide
+            autoTimer = setInterval(function() {
+                currentIndex++;
+                updateSpinner();
+                
+                // Snap bar back to 0
+                timerFill.style.transition = 'none';
+                timerFill.style.width = '0%';
+                
+                // Restart animation
+                setTimeout(function(){
+                    timerFill.style.transition = 'width 3s linear';
+                    timerFill.style.width = '100%';
+                }, 50);
+
+            }, 3000);
+        }
+
+        function restartAutoPlay() {
+            clearInterval(autoTimer);
+            timerFill.style.transition = 'none';
+            timerFill.style.width = '0%';
+            runTimer();
+        }
+
+        function resetTimerAnimation() {
+            // Helper just to reset the visual bar
+            timerFill.style.transition = 'none';
+            timerFill.style.width = '0%';
+            setTimeout(function(){
+                timerFill.style.transition = 'width 3s linear';
+                timerFill.style.width = '100%';
+            }, 50);
+        }
+
+        // Fix logic when resizing window
+        window.onresize = function() {
+            clearInterval(autoTimer);
+            setup();
+        };
+
+    </script>
+</body>
+</html>
