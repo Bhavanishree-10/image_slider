@@ -1,0 +1,26 @@
+# 3D Landscape Image Slider
+
+This is a web development project that creates a 3D rotating image carousel. Instead of just sliding left and right, the images rotate in a ring formation using CSS 3D transforms.
+
+## How to Run
+1. Download the `index.html` file.
+2. Open it in any modern web browser (Google Chrome, Firefox, Edge, etc.).
+3. The slider should start rotating automatically.
+
+## Features
+* **3D Rotation:** Images are arranged in a circle and spin when navigating.
+* **Auto-Play:** The slider moves to the next image every 3 seconds.
+* **Progress Bar:** A blue bar at the bottom shows when the next slide will happen.
+* **Responsive:** It adjusts the size of the 3D ring for mobile screens vs desktop screens.
+* **Reflection Effect:** Images have a cool reflection at the bottom using CSS.
+
+## How to Customize
+If you want to change the images, open `index.html` in a code editor (like VS Code or Notepad).
+
+Look for this part in the `<script>` section:
+
+```javascript
+var photoData = [
+    { src: 'https://...', title: 'Misty Mountains' },
+    ...
+];
